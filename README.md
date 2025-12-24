@@ -101,6 +101,23 @@ export const useGetProducts = (params: {
 };
 ```
 
+## 🔍 Debounced Search
+
+To reduce unnecessary API calls and improve performance, the app uses a **debounced search** strategy for product searching.  
+When the user types in the search box, the input is debounced (e.g., 400ms) using a custom `useDebounce` hook. Only after the user stops typing for the debounce interval will the search query be sent to the API.
+
+**Benefits:**
+- Prevents excessive API requests while the user is typing.
+- Reduces server load and improves app responsiveness.
+- Provides a smoother user experience.
+
+**Example usage:**
+```typescript
+const [search, setSearch] = useState('');
+const debouncedSearch = useDebounce(search, 400);
+const { data } = useGetProducts({ search: debouncedSearch, category });
+```
+
 ## Trade-offs & Improvements
 Given more time, I would:
 - Improve error handling and loading states for a better user experience
@@ -109,3 +126,17 @@ Given more time, I would:
 - Add unit tests for business logic and data fetching
 
 These improvements would help make the application more robust and production-ready.
+
+## Folder Structure
+
+The project follows a modular folder structure:
+
+- **api/**: Mock API and data sources.
+- **components/**: Reusable UI components.
+- **hooks/**: Custom React hooks for business logic and state.
+- **navigation/**: Navigation setup and stack definitions.
+- **react-query/**: Query hooks and query key definitions for React Query.
+- **screens/**: Main app screens.
+- **types/**: TypeScript type definitions.
+
+> This structure keeps business logic, UI, and data fetching concerns separated and easy to maintain.

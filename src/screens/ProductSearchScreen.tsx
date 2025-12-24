@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useGetProducts } from '../react-query/hooks/products';
 import ProductItem from '../components/ProductItem';
+import { useDebounce } from '../hooks/useDebounce';
 
 const CATEGORIES = [
   'All',
@@ -23,8 +24,10 @@ export default function ProductSearchScreen() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
 
+  const debouncedSearch = useDebounce(search, 400);
+
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useGetProducts({ search, category });
+    useGetProducts({ search: debouncedSearch, category });
 
   const products = data?.pages.flat() || [];
 
