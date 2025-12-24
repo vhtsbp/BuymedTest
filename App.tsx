@@ -5,41 +5,33 @@
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+  setupReactQueryManagers,
+  queryClient,
+} from './src/lib/react-query-setup';
+import { NavigationContainer } from '@react-navigation/native';
+import AppNavigator from './src/navigation/AppNavigator';
+import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { QueryClientProvider } from '@tanstack/react-query';
+
+setupReactQueryManagers();
+
+persistQueryClient({
+  queryClient,
+  persister: createAsyncStoragePersister({ storage: AsyncStorage }),
+  maxAge: 24 * 60 * 60 * 1000, // 1 days
+});
 
 function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
+    </QueryClientProvider>
   );
 }
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
 
 export default App;

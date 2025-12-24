@@ -1,97 +1,90 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+## 🚀 How to Run the Project
 
-# Getting Started
+Follow the steps below to run the React Native project locally.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+### 📦 Install Dependencies
 
-## Step 1: Start Metro
+```bash
+npm install
+# or
+yarn install
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+### IOS
+cd ios && pod install && cd ..
+npx react-native run-ios
 
 ### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npx react-native run-android
 ```
 
-### iOS
+## 📶 Offline Behavior
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+The app supports **offline-first behavior** using **TanStack React Query**, **AsyncStorage persistence**, and **NetInfo**.
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### 🌐 Network Awareness
+Network status is tracked via `@react-native-community/netinfo` and connected to React Query using `onlineManager`.
 
-```sh
-bundle install
-```
+- Queries are **paused when offline**
+- Queries **resume and retry** when back online
 
-Then, and every time you update your native dependencies, run:
+### 💾 Cache Persistence
+Query cache is persisted to `AsyncStorage` using `PersistQueryClientProvider`.
 
-```sh
-bundle exec pod install
-```
+- Cached data is available after app restart
+- Cached data is shown while offline
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+### 🔁 Query Behavior
 
-```sh
-# Using npm
-npm run ios
+| State | Behavior |
+|------|----------|
+| Offline + cache exists | Show cached data |
+| Offline + no cache | Query is paused |
+| Back online | Queries refetch automatically |
 
-# OR using Yarn
-yarn ios
-```
+### ⚠️ Notes
+- Mutations are **not persisted**
+- Offline mutations require custom handling
+- Cache can be invalidated via `buster` version `buster: 'v1.0.0'` (buster change => invalidated cache)
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## 🗄️ Data Fetching, Caching, and Pagination
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+### Why Cache Data?
 
-## Step 3: Modify your app
+- **Smooth UX:** Caching ensures that users see data instantly when navigating or returning to a screen, even with slow or unstable networks.
+- **Offline Support:** Cached data is available when offline, providing a seamless experience.
+- **Reduced Network Usage:** Avoids unnecessary API calls by serving data from cache when possible.
 
-Now that you have successfully run the app, let's make changes!
+### How Data Fetching & Caching Works
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+- **React Query** is used for all data fetching and caching.
+- The query cache is persisted to `AsyncStorage` (see [Offline Behavior](#offline-behavior)), so data survives app restarts.
+- Queries use a `staleTime` (e.g. 5 minutes) to control how long data is considered fresh. During this time, navigation or refocus will not trigger a refetch.
+- When the device is offline, queries are paused and cached data is shown. When back online, queries automatically refetch if needed.
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+### Why use `useInfiniteQuery`?
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+- **Pagination/Load More:** `useInfiniteQuery` enables efficient "load more" pagination, fetching data in pages as the user scrolls.
+- **Memory Efficiency:** Only a subset of data is loaded at a time, reducing memory usage for large lists.
+- **Consistent API:** Handles page tracking, loading state, and cache for each page automatically.
 
-## Congratulations! :tada:
+### Example: Product List Pagination
 
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+```typescript
+export const useGetProducts = () => {
+  const PAGE_SIZE = 20;
+  return useInfiniteQuery({
+    queryKey: ['products'],
+    queryFn: ({ pageParam = 0 }) => {
+      return getProducts({ skip: pageParam, limit: PAGE_SIZE });
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PAGE_SIZE) return undefined;
+      return allPages.length * PAGE_SIZE;
+    },
+    initialPageParam: 0,
+    staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
+    retry: 2, // Retry twice on network error
+    retryOnMount: true, // Retry when coming back online
+    refetchOnReconnect: true, // Refetch if network reconnects
+  });
+};
