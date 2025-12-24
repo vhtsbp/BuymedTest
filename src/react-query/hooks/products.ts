@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { getProducts } from '../../services/product';
 import { ProductsQueryKeys } from '../querykeys/products';
 

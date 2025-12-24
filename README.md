@@ -17,6 +17,14 @@ npx react-native run-ios
 npx react-native run-android
 ```
 
+## Framework & State Management
+This project is built with **React Native**.
+
+For state management, I use **TanStack React Query** to handle server state such as data fetching, caching, and synchronization with the backend. Local UI state is managed using React’s built-in state hooks.
+
+This approach keeps the codebase simple, reduces boilerplate, and fits well with data-driven mobile applications.
+
+
 ## 📶 Offline Behavior
 
 The app supports **offline-first behavior** using **TanStack React Query**, **AsyncStorage persistence**, and **NetInfo**.
@@ -70,21 +78,34 @@ Query cache is persisted to `AsyncStorage` using `PersistQueryClientProvider`.
 ### Example: Product List Pagination
 
 ```typescript
-export const useGetProducts = () => {
+export const useGetProducts = (params: {
+  search?: string;
+  category?: string;
+}) => {
   const PAGE_SIZE = 20;
   return useInfiniteQuery({
-    queryKey: ['products'],
+    queryKey: ProductsQueryKeys.list(params),
     queryFn: ({ pageParam = 0 }) => {
-      return getProducts({ skip: pageParam, limit: PAGE_SIZE });
+      return getProducts({ skip: pageParam, limit: PAGE_SIZE, ...params });
     },
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < PAGE_SIZE) return undefined;
       return allPages.length * PAGE_SIZE;
     },
     initialPageParam: 0,
-    staleTime: 5 * 60 * 1000, // Data is fresh for 5 minutes
-    retry: 2, // Retry twice on network error
-    retryOnMount: true, // Retry when coming back online
+    staleTime: 5 * 60 * 1000, // 5 minutes, data will not be refetched frequently
+    retry: 2, // Retry 2 times if network error
+    retryOnMount: true, // Automatically retry when coming back online
     refetchOnReconnect: true, // Refetch if network reconnects
   });
 };
+```
+
+## Trade-offs & Improvements
+Given more time, I would:
+- Improve error handling and loading states for a better user experience
+- Add better offline support and request retry strategies
+- Introduce more modular UI components and improve reusability
+- Add unit tests for business logic and data fetching
+
+These improvements would help make the application more robust and production-ready.
